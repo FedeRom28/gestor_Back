@@ -18,11 +18,19 @@ function verificarToken(req, res, next) {
   });
 }
 
-// GET tareas del usuario
+// GET tareas del usuario con el nombre de la categoría
 router.get("/obtenerTareas", verificarToken, (req, res) => {
   const usuarioID = req.usuario.id;
 
-  const query = "SELECT * FROM tarea WHERE Usuario_ID = ?";
+  const query = `
+    SELECT t.ID, t.Titulo, t.Descripcion, t.Estado, 
+           t.Fecha_Creacion, t.Fecha_Cambio, t.Categoria_ID, 
+           c.Tipo AS Categoria
+    FROM tarea t
+    LEFT JOIN categoria c ON t.Categoria_ID = c.ID
+    WHERE t.Usuario_ID = ?
+  `;
+
   db.query(query, [usuarioID], (err, resultados) => {
     if (err) return res.status(500).send("Error al obtener tareas");
     res.json(resultados);
@@ -31,42 +39,64 @@ router.get("/obtenerTareas", verificarToken, (req, res) => {
 
 // POST crear tarea
 router.post("/crearTarea", verificarToken, (req, res) => {
-  const { Titulo, Descripcion } = req.body;
+  const { Titulo, Descripcion, Categoria_ID } = req.body;
   const usuarioID = req.usuario.id;
 
   if (!Titulo || !Descripcion)
     return res.status(400).send("Faltan título o descripción");
 
   const query = `
-    INSERT INTO tarea (Usuario_ID, Titulo, Descripcion, Estado, Fecha_Creacion, Fecha_Cambio)
-    VALUES (?, ?, ?, 0, NOW(), NOW())
+    INSERT INTO tarea (Usuario_ID, Titulo, Descripcion, Estado, Fecha_Creacion, Fecha_Cambio, Categoria_ID)
+    VALUES (?, ?, ?, 0, NOW(), NOW(), ?)
   `;
 
-  db.query(query, [usuarioID, Titulo, Descripcion], (err, result) => {
+  db.query(query, [usuarioID, Titulo, Descripcion, Categoria_ID], (err, result) => {
     if (err) return res.status(500).send("Error al crear tarea");
     res.json({ mensaje: "Tarea creada", tareaID: result.insertId });
   });
 });
 
-// PUT actualizar tarea
+// PUT actualizar solo datos de la tarea (Titulo y Descripcion)
 router.put("/actualizarTarea/:id", verificarToken, (req, res) => {
   const { id } = req.params;
-  const { Titulo, Descripcion, Estado } = req.body;
+  const { Titulo, Descripcion } = req.body;
   const usuarioID = req.usuario.id;
 
-  if (!Titulo || !Descripcion || Estado === undefined)
+  if (!Titulo || !Descripcion)
     return res.status(400).send("Faltan datos para actualizar");
 
   const query = `
-    UPDATE tarea SET Titulo = ?, Descripcion = ?, Estado = ?, Fecha_Cambio = NOW()
+    UPDATE tarea SET Titulo = ?, Descripcion = ?, Fecha_Cambio = NOW()
     WHERE ID = ? AND Usuario_ID = ?
   `;
 
-  db.query(query, [Titulo, Descripcion, Estado, id, usuarioID], (err, result) => {
+  db.query(query, [Titulo, Descripcion, id, usuarioID], (err, result) => {
     if (err) return res.status(500).send("Error al actualizar tarea");
     if (result.affectedRows === 0)
       return res.status(404).send("Tarea no encontrada");
     res.json({ mensaje: "Tarea actualizada" });
+  });
+});
+
+// PATCH cambiar Estado de la tarea
+router.patch("/cambiarEstado/:id", verificarToken, (req, res) => {
+  const { id } = req.params;
+  const { Estado } = req.body; // 0 o 1
+  const usuarioID = req.usuario.id;
+
+  if (Estado === undefined || (Estado !== 0 && Estado !== 1))
+    return res.status(400).send("Estado inválido");
+
+  const query = `
+    UPDATE tarea SET Estado = ?, Fecha_Cambio = NOW()
+    WHERE ID = ? AND Usuario_ID = ?
+  `;
+
+  db.query(query, [Estado, id, usuarioID], (err, result) => {
+    if (err) return res.status(500).send("Error al cambiar estado");
+    if (result.affectedRows === 0)
+      return res.status(404).send("Tarea no encontrada");
+    res.json({ mensaje: "Estado de la tarea actualizado" });
   });
 });
 

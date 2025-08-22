@@ -40,7 +40,7 @@ router.post("/login", (req, res) => {
     if (!match) return res.status(401).send("Credenciales incorrectas");
 
     const token = jwt.sign({ id: usuario.ID, User: usuario.User }, LlaveSecreta, {
-      expiresIn: "2h",
+      expiresIn: "1h",
     });
 
     res.json({ mensaje: "Login exitoso", token });
