@@ -5,7 +5,7 @@ import bcrypt from "bcrypt";
 
 const router = express.Router();
 
-const SECRET_KEY = process.env.SECRET_KEY;
+const LlaveSecreta = process.env.SECRET_KEY;
 
 router.post("/registro", async (req, res) => {
   const { User, Password, Nombre, Apellido } = req.body;
@@ -39,7 +39,7 @@ router.post("/login", (req, res) => {
 
     if (!match) return res.status(401).send("Credenciales incorrectas");
 
-    const token = jwt.sign({ id: usuario.ID, User: usuario.User }, process.env.SECRET_KEY, {
+    const token = jwt.sign({ id: usuario.ID, User: usuario.User }, LlaveSecreta, {
       expiresIn: "2h",
     });
 
