@@ -8,16 +8,16 @@ const router = express.Router();
 const LlaveSecreta = process.env.SECRET_KEY;
 
 router.post("/registro", async (req, res) => {
-  const { User, Password, Nombre, Apellido } = req.body;
+  const { User, Password } = req.body;
 
-  if (!User || !Password || !Nombre || !Apellido) {
+  if (!User || !Password) {
     return res.status(400).send("Faltan datos");
   }
 
   try {
     const hashedPassword = await bcrypt.hash(Password, 10); // 10 rounds de sal
-    const query = "INSERT INTO usuario (User, Password, Nombre, Apellido) VALUES (?, ?, ?, ?)";
-    db.query(query, [User, hashedPassword, Nombre, Apellido], (err, result) => {
+    const query = "INSERT INTO usuario (User, Password) VALUES (?, ?)";
+    db.query(query, [User, hashedPassword], (err, result) => {
       if (err) return res.status(500).send("Error al registrar usuario");
       res.json({ mensaje: "Usuario registrado exitosamente" });
     });
