@@ -19,7 +19,7 @@ function verificarToken(req, res, next) {
 }
 
 // GET tareas del usuario
-router.get("/", verificarToken, (req, res) => {
+router.get("/obtenerTareas", verificarToken, (req, res) => {
   const usuarioID = req.usuario.id;
 
   const query = "SELECT * FROM tarea WHERE Usuario_ID = ?";
@@ -30,7 +30,7 @@ router.get("/", verificarToken, (req, res) => {
 });
 
 // POST crear tarea
-router.post("/", verificarToken, (req, res) => {
+router.post("/crearTarea", verificarToken, (req, res) => {
   const { Titulo, Descripcion } = req.body;
   const usuarioID = req.usuario.id;
 
@@ -49,7 +49,7 @@ router.post("/", verificarToken, (req, res) => {
 });
 
 // PUT actualizar tarea
-router.put("/:id", verificarToken, (req, res) => {
+router.put("/actualizarTarea/:id", verificarToken, (req, res) => {
   const { id } = req.params;
   const { Titulo, Descripcion, Estado } = req.body;
   const usuarioID = req.usuario.id;
@@ -71,7 +71,7 @@ router.put("/:id", verificarToken, (req, res) => {
 });
 
 // DELETE eliminar tarea
-router.delete("/:id", verificarToken, (req, res) => {
+router.delete("/eliminarTarea/:id", verificarToken, (req, res) => {
   const { id } = req.params;
   const usuarioID = req.usuario.id;
 
