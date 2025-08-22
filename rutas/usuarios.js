@@ -5,7 +5,7 @@ import bcrypt from "bcrypt";
 
 const router = express.Router();
 
-const LlaveSecreta = process.env.SECRET_KEY;
+const LlaveSecreta = process.env.SECRET_KEY || "ClaveParaToken";
 
 router.post("/registro", async (req, res) => {
   const { User, Password } = req.body;
@@ -42,7 +42,7 @@ router.post("/login", (req, res) => {
     const token = jwt.sign({ id: usuario.ID, User: usuario.User }, LlaveSecreta, {
       expiresIn: "1h",
     });
-
+    
     res.json({ mensaje: "Login exitoso", token });
   });
 });
