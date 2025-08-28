@@ -1,9 +1,10 @@
 import express from "express";
 import db from "../db.js";
+import { verificarToken } from "../middlewares/autenticar.js";
 
 const router = express.Router();
 
-router.get("/obtenerCategorias", (req, res) => {
+router.get("/obtenerCategorias", verificarToken, (req, res) => {
   const query = "SELECT * FROM categoria";
 
   db.query(query, (err, resultados) => {

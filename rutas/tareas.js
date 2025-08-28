@@ -1,29 +1,16 @@
+// routes/tareas.js
 import express from "express";
 import db from "../db.js";
-import jwt from "jsonwebtoken";
+import { verificarToken } from "../middlewares/autenticar.js";
 
 const router = express.Router();
 
-// Middleware para verificar el token y obtener el usuario
-function verificarToken(req, res, next) {
-  const header = req.headers["authorization"];
-  const token = header && header.split(" ")[1];
-
-  if (!token) return res.status(401).send("Token no proporcionado");
-
-  jwt.verify(token, process.env.SECRET_KEY, (err, usuario) => {
-    if (err) return res.status(403).send("Token inválido");
-    req.usuario = usuario; // contiene id y User
-    next();
-  });
-}
-
-// GET tareas del usuario con el nombre de la categoría
+// GET: obtener todas las tareas del usuario
 router.get("/obtenerTareas", verificarToken, (req, res) => {
   const usuarioID = req.usuario.id;
 
   const query = `
-    SELECT t.ID, t.Titulo, t.Descripcion, t.Estado, 
+    SELECT t.ID, t.Descripcion, t.Estado, 
            t.Fecha_Creacion, t.Fecha_Cambio, t.Categoria_ID, 
            c.Tipo AS Categoria
     FROM tarea t
@@ -37,40 +24,41 @@ router.get("/obtenerTareas", verificarToken, (req, res) => {
   });
 });
 
-// POST crear tarea
+// POST: crear nueva tarea
 router.post("/crearTarea", verificarToken, (req, res) => {
-  const { Titulo, Descripcion, Categoria_ID } = req.body;
+  const { Descripcion, Categoria_ID } = req.body;
   const usuarioID = req.usuario.id;
 
-  if (!Titulo || !Descripcion)
-    return res.status(400).send("Faltan título o descripción");
+  if (!Descripcion)
+    return res.status(400).send("Falta descripción");
 
   const query = `
-    INSERT INTO tarea (Usuario_ID, Titulo, Descripcion, Estado, Fecha_Creacion, Fecha_Cambio, Categoria_ID)
-    VALUES (?, ?, ?, 0, NOW(), NOW(), ?)
+    INSERT INTO tarea (Usuario_ID, Descripcion, Estado, Fecha_Creacion, Fecha_Cambio, Categoria_ID)
+    VALUES (?, ?, 0, NOW(), NOW(), ?)
   `;
 
-  db.query(query, [usuarioID, Titulo, Descripcion, Categoria_ID], (err, result) => {
+  db.query(query, [usuarioID, Descripcion, Categoria_ID], (err, result) => {
     if (err) return res.status(500).send("Error al crear tarea");
     res.json({ mensaje: "Tarea creada", tareaID: result.insertId });
   });
 });
 
-// PUT actualizar solo datos de la tarea (Titulo y Descripcion)
+// PUT: actualizar descripción y categoría de la tarea
 router.put("/actualizarTarea/:id", verificarToken, (req, res) => {
   const { id } = req.params;
-  const { Titulo, Descripcion } = req.body;
+  const { Descripcion, Categoria_ID } = req.body;
   const usuarioID = req.usuario.id;
 
-  if (!Titulo || !Descripcion)
-    return res.status(400).send("Faltan datos para actualizar");
+  if (!Descripcion)
+    return res.status(400).send("Falta descripción para actualizar");
 
   const query = `
-    UPDATE tarea SET Titulo = ?, Descripcion = ?, Fecha_Cambio = NOW()
+    UPDATE tarea 
+    SET Descripcion = ?, Categoria_ID = ?, Fecha_Cambio = NOW()
     WHERE ID = ? AND Usuario_ID = ?
   `;
 
-  db.query(query, [Titulo, Descripcion, id, usuarioID], (err, result) => {
+  db.query(query, [Descripcion, Categoria_ID, id, usuarioID], (err, result) => {
     if (err) return res.status(500).send("Error al actualizar tarea");
     if (result.affectedRows === 0)
       return res.status(404).send("Tarea no encontrada");
@@ -78,10 +66,10 @@ router.put("/actualizarTarea/:id", verificarToken, (req, res) => {
   });
 });
 
-// PATCH cambiar Estado de la tarea
+// PATCH: cambiar estado (0 o 1)
 router.patch("/cambiarEstado/:id", verificarToken, (req, res) => {
   const { id } = req.params;
-  const { Estado } = req.body; // 0 o 1
+  const { Estado } = req.body;
   const usuarioID = req.usuario.id;
 
   if (Estado === undefined || (Estado !== 0 && Estado !== 1))
@@ -96,11 +84,11 @@ router.patch("/cambiarEstado/:id", verificarToken, (req, res) => {
     if (err) return res.status(500).send("Error al cambiar estado");
     if (result.affectedRows === 0)
       return res.status(404).send("Tarea no encontrada");
-    res.json({ mensaje: "Estado de la tarea actualizado" });
+    res.json({ mensaje: "Estado actualizado" });
   });
 });
 
-// DELETE eliminar tarea
+// DELETE: eliminar tarea
 router.delete("/eliminarTarea/:id", verificarToken, (req, res) => {
   const { id } = req.params;
   const usuarioID = req.usuario.id;
