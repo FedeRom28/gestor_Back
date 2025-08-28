@@ -8,37 +8,75 @@ const router = express.Router();
 // GET: obtener todas las tareas del usuario
 router.get("/obtenerTareas", verificarToken, (req, res) => {
   const usuarioID = req.usuario.id;
+  console.log("📩 GET /obtenerTareas - Usuario_ID:", usuarioID);
 
   const query = `
-    SELECT t.ID, t.Descripcion, t.Estado, 
+    SELECT t.ID, t.Titulo, t.Descripcion, t.Estado, 
            t.Fecha_Creacion, t.Fecha_Cambio, t.Categoria_ID, 
            c.Tipo AS Categoria
     FROM tarea t
     LEFT JOIN categoria c ON t.Categoria_ID = c.ID
-    WHERE t.Usuario_ID = ?
+    WHERE t.Usuario_ID = ? AND t.Estado = 0
+    ORDER BY 
+      CASE WHEN t.Categoria_ID = 1 THEN 0 ELSE 1 END, 
+      t.Fecha_Creacion ASC
   `;
 
   db.query(query, [usuarioID], (err, resultados) => {
-    if (err) return res.status(500).send("Error al obtener tareas");
+    if (err) {
+      console.error("❌ Error al obtener tareas:", err);
+      return res.status(500).send("Error al obtener tareas");
+    }
+    console.log("✅ Resultados obtenidos (Estado=0, priorizando Categoria_ID=1):", resultados);
+    res.json(resultados);
+  });
+});
+
+router.get("/obtenerTareasCompletadas", verificarToken, (req, res) => {
+  const usuarioID = req.usuario.id;
+  console.log("📩 GET /obtenerTareasCompletadas - Usuario_ID:", usuarioID);
+
+  const query = `
+    SELECT t.ID, t.Titulo, t.Descripcion, t.Estado, 
+           t.Fecha_Creacion, t.Fecha_Cambio, t.Categoria_ID, 
+           c.Tipo AS Categoria
+    FROM tarea t
+    LEFT JOIN categoria c ON t.Categoria_ID = c.ID
+    WHERE t.Usuario_ID = ? AND t.Estado = 1
+    ORDER BY t.Fecha_Cambio DESC
+  `;
+
+  db.query(query, [usuarioID], (err, resultados) => {
+    if (err) {
+      console.error("❌ Error al obtener tareas completadas:", err);
+      return res.status(500).send("Error al obtener tareas completadas");
+    }
+    console.log("✅ Resultados obtenidos (Estado=1, ordenadas por Fecha_Cambio DESC):", resultados);
     res.json(resultados);
   });
 });
 
 // POST: crear nueva tarea
 router.post("/crearTarea", verificarToken, (req, res) => {
-  const { Descripcion, Categoria_ID } = req.body;
+  const { Titulo, Descripcion, Categoria_ID } = req.body;
   const usuarioID = req.usuario.id;
 
-  if (!Descripcion)
-    return res.status(400).send("Falta descripción");
+  console.log("📩 POST /crearTarea - Datos recibidos:", req.body, "Usuario_ID:", usuarioID);
+
+  if (!Descripcion || !Titulo)
+    return res.status(400).send("Falta título o descripción");
 
   const query = `
-    INSERT INTO tarea (Usuario_ID, Descripcion, Estado, Fecha_Creacion, Fecha_Cambio, Categoria_ID)
-    VALUES (?, ?, 0, NOW(), NOW(), ?)
+    INSERT INTO tarea (Usuario_ID, Titulo, Descripcion, Estado, Fecha_Creacion, Fecha_Cambio, Categoria_ID)
+    VALUES (?, ?, ?, 0, NOW(), NOW(), ?)
   `;
 
-  db.query(query, [usuarioID, Descripcion, Categoria_ID], (err, result) => {
-    if (err) return res.status(500).send("Error al crear tarea");
+  db.query(query, [usuarioID, Titulo, Descripcion, Categoria_ID], (err, result) => {
+    if (err) {
+      console.error("❌ Error al crear tarea:", err);
+      return res.status(500).send("Error al crear tarea");
+    }
+    console.log("✅ Tarea creada con ID:", result.insertId);
     res.json({ mensaje: "Tarea creada", tareaID: result.insertId });
   });
 });
