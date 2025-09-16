@@ -105,7 +105,7 @@ router.put("/actualizarTarea/:id", verificarToken, (req, res) => {
 });
 
 // PATCH: cambiar estado (0 o 1)
-router.patch("/cambiarEstado/:id", verificarToken, (req, res) => {
+router.patch("/actualizarEstado/:id", verificarToken, (req, res) => {
   const { id } = req.params;
   const { Estado } = req.body;
   const usuarioID = req.usuario.id;
